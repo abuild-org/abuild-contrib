@@ -1,0 +1,86 @@
+#!/usr/bin/env perl
+
+require 5.008;
+BEGIN { $^W = 1; }
+use strict;
+
+my $whoami = ($0 =~ m,([^/\\]*)$,) ? $1 : $0;
+#my $dirname = ($0 =~ m,(.*)[/\\][^/\\]+$,) ? $1 : ".";
+
+usage() unless @ARGV == 3;
+my ($pkg, $pc_dir, $interface_file) = @ARGV;
+
+if ($pc_dir)
+{
+    $ENV{'PKG_CONFIG_PATH'} = $pc_dir;
+}
+my $cflags = get_output("pkg-config --cflags $pkg");
+my $libs = get_output("pkg-config --libs $pkg");
+my @pc_cflags = split(/\s+/, $cflags);
+my @pc_libs = split(/\s+/, $libs);
+
+my @includes = ();
+my @xcppflags = ();
+my @libdirs = ();
+my @libs = ();
+my @xlinkflags = ();
+
+foreach my $f (@pc_cflags)
+{
+    if ($f =~ s/^-I//)
+    {
+	push(@includes, $f);
+    }
+    else
+    {
+	push(@xcppflags, $f);
+    }
+}
+foreach my $f (@pc_libs)
+{
+    if ($f =~ s/^-L//)
+    {
+	push(@libdirs, $f);
+    }
+    elsif ($f =~ s/^-l//)
+    {
+	push(@libs, $f);
+    }
+    else
+    {
+	push(@xlinkflags, $f);
+    }
+}
+
+open(OUT, ">$interface_file") or die "$whoami: can't open $interface_file: $!\n";
+write_var('INCLUDES', @includes);
+write_var('XCPPFLAGS', @xcppflags);
+write_var('LIBDIRS', @libdirs);
+write_var('LIBS', @libs);
+write_var('XLINKFLAGS', @xlinkflags);
+close(OUT);
+
+sub get_output
+{
+    my $cmd = shift;
+    my $result = `$cmd`;
+    die "$whoami: $cmd failed\n" unless $? == 0;
+    chop($result);
+    $result;
+}
+
+sub write_var
+{
+    my ($var, @values) = @_;
+    if (@values)
+    {
+	print OUT "$var = ", join(' ', (map { quote($_) } @values)), "\n";
+    }
+}
+
+sub quote
+{
+    my $val = shift;
+    $val =~ s:([\\=,\(\)\$]):\\$1:g;
+    $val;
+}

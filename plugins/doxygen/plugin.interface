@@ -1,0 +1,2 @@
+declare DOXYGEN_TAGFILES list filename append
+declare DOXYGEN_DATAFILES list filename append

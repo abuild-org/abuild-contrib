@@ -1,0 +1,69 @@
+<project name="plugin.javadoc-hooks">
+
+ <target name="-doc" depends="-javadoc"/>
+
+ <target name="-properties-help">
+  <echo>
+Properties for javadoc plugin:
+
+ * abuild-contrib.javadoc.title: the title of the generated
+   document
+
+The abuild-contrib.javadoc.title property must be set in
+order for javadoc to be run.
+  </echo>
+ </target>
+
+ <macrodef name="run-javadoc">
+  <attribute name="level"/>
+  <attribute name="destdir"/>
+  <sequential>
+   <mkdir dir="@{destdir}"/>
+   <tstamp>
+    <format property="now" pattern="EEE MMM d, yyyy HH:mm zzz"/>
+   </tstamp>
+   <tstamp>
+    <format property="year" pattern="yyyy"/>
+   </tstamp>
+
+   <!--  The source attribute gets its value from                  -->
+   <!--  ant.build.javac.source which is set by abuild's ant code  -->
+   <!--  if the user specifies a source version.                   -->
+   <javadoc destdir="@{destdir}"
+            access="@{level}"
+            version="true"
+            author="true"
+            use="true"
+            breakiterator="true"
+            serialwarn="true"
+            doctitle="${abuild-contrib.javadoc.title}"
+            windowtitle="${abuild-contrib.javadoc.title}">
+    <fileset dir="${abuild.private.dir.jsrc}"/>
+    <fileset dir="${abuild.private.dir.generated-jsrc}"/>
+    <classpath>
+     <path>
+      <pathelement path="${abuild.private.complete-classpath-jar}"/>
+     </path>
+     <fileset dir="${abuild.private.dir.classes}"/>
+    </classpath>
+   </javadoc>
+  </sequential>
+ </macrodef>
+
+ <condition property="abuild-contrib.javadoc.run-javadoc">
+  <and>
+   <isset property="abuild-contrib.javadoc.title"/>
+  </and>
+ </condition>
+
+ <target name="-javadoc" depends="-distjavadoc,-devjavadoc"/>
+
+ <target name="-distjavadoc" if="abuild-contrib.javadoc.run-javadoc">
+  <run-javadoc level="protected" destdir="${abuild.private.dir.dist}/javadoc"/>
+ </target>
+
+ <target name="-devjavadoc" if="abuild-contrib.javadoc.run-javadoc">
+  <run-javadoc level="private" destdir="javadoc"/>
+ </target>
+
+</project>

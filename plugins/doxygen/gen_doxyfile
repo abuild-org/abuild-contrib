@@ -1,0 +1,117 @@
+#!/usr/bin/env perl
+
+require 5.008;
+BEGIN { $^W = 1; }
+use strict;
+use File::Basename;
+
+my $whoami = basename($0);
+
+my @override_files = ();
+my @tagdata = ();
+my @inputdata = ();
+while (@ARGV)
+{
+    my $arg = shift(@ARGV);
+    if ($arg eq '--tags')
+    {
+	usage() unless @ARGV;
+	@tagdata = split(/ /, shift(@ARGV));
+    }
+    elsif ($arg eq '--input')
+    {
+	usage() unless @ARGV;
+	@inputdata = split(/ /, shift(@ARGV));
+    }
+    else
+    {
+	push(@override_files, $arg) unless $arg eq '';
+    }
+}
+
+my @override_data = (
+    "#--------------------\n",
+    "# LOCAL OVERRIDES\n",
+    "#--------------------\n");
+my %vars = ();
+
+open(OUT, ">abuild_doxyfile") or
+    die "$whoami: can't create abuild_doxyfile: $!\n";
+
+foreach my $o (@override_files)
+{
+    open(O, "<$o") or die "$whoami: can't open $o: $!\n";
+    push(@override_data, "# overrides from $o\n");
+    while (<O>)
+    {
+	if (m/^\s*(\S+)\s*\+?=/)
+	{
+	    $vars{$1} = 1;
+	}
+	push(@override_data, $_);
+    }
+    close(O);
+}
+
+open(D, "doxygen -s -g -|") or die "$whoami: can't run doxygen: $!\n";
+while (<D>)
+{
+    if (m/^\s*(\S+)\s*=/)
+    {
+	my $var = $1;
+	if (exists $vars{$var})
+	{
+	    s/^/#[overridden] /;
+	}
+    }
+    print OUT;
+}
+close(D);
+foreach my $d (@override_data)
+{
+    print OUT $d;
+}
+if (@tagdata)
+{
+    print OUT "# TAGS\n";
+    foreach my $d (@tagdata)
+    {
+	next if $d eq '';
+	next if dirname($d) eq '.';
+	my $otherhtml = dirname($d) . "/html";
+	if ($otherhtml !~ m,^/,)
+	{
+	    # Make relative to our html directory
+	    $otherhtml = "../" . $otherhtml;
+	}
+	my $tagline = "$d=$otherhtml";
+	print OUT "TAGFILES += $tagline\n";
+    }
+}
+if (@inputdata)
+{
+    print OUT "# INPUT\n";
+    foreach my $d (@inputdata)
+    {
+	next if $d eq '';
+	print OUT "INPUT += $d\n";
+    }
+}
+
+sub usage
+{
+    die "Usage: $whoami [ options ] doxyfile ...
+
+Options:
+  --tags \"tagfile ...\"
+  --inputs \"input-directory ...\"
+
+Each tagfile is assumed to correspond to an output directory called
+\"html\" in the same directory as the tagfile.
+
+Each input directory appended to INPUT.
+
+Each doxyfile may contain assignments or append statements to doxygen
+variables.
+";
+}

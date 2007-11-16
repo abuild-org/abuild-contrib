@@ -1,0 +1,10 @@
+prefix=/usr
+exec_prefix=${prefix}
+libdir=--LDIR--
+includedir=--IDIR--
+
+Name: tps-lib1.0-1
+Description: fake third party libary
+Version: 1.0
+Libs: -L${libdir} -ltps-lib
+Cflags: -I${includedir} -DTPS_LIB=1
