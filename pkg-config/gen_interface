@@ -14,6 +14,14 @@ if ($pc_dir)
 {
     $ENV{'PKG_CONFIG_PATH'} = $pc_dir;
 }
+open(OUT, ">$interface_file") or die "$whoami: can't open $interface_file: $!\n";
+if (system("pkg-config --exists $pkg >/dev/null 2>&1") != 0)
+{
+    print OUT "# pkg-config can't find information about $pkg\n";
+    close(OUT);
+    exit 0;
+}
+
 my $cflags = get_output("pkg-config --cflags $pkg");
 my $libs = get_output("pkg-config --libs $pkg");
 my @pc_cflags = split(/\s+/, $cflags);
@@ -52,7 +60,6 @@ foreach my $f (@pc_libs)
     }
 }
 
-open(OUT, ">$interface_file") or die "$whoami: can't open $interface_file: $!\n";
 write_var('INCLUDES', @includes);
 write_var('XCPPFLAGS', @xcppflags);
 write_var('LIBDIRS', @libdirs);

@@ -6,10 +6,19 @@ use strict;
 require TestDriver;
 
 my $td = new TestDriver('prog');
+my $skip = $ENV{'SKIP_TEST'} || 0;
 
-$td->runtest("prog",
-	     {$td->COMMAND => "prog"},
-	     {$td->STRING => "In f\n", $td->EXIT_STATUS => 0},
-	     $td->NORMALIZE_NEWLINES);
+if ($skip eq '1')
+{
+    $td->runtest("skipping pkg-config test",
+		 {$td->STRING => "1"}, {$td->STRING => "1"});
+}
+else
+{
+    $td->runtest("prog",
+		 {$td->COMMAND => "prog"},
+		 {$td->STRING => "In f\n", $td->EXIT_STATUS => 0},
+		 $td->NORMALIZE_NEWLINES);
+}
 
 $td->report(1);
